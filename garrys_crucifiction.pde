@@ -21,31 +21,30 @@ int[] monitor = new int[2];
 
 void setup()
 {
+  monitor[0] = 1920;
+  monitor[1] = 1200;
+  context = new SimpleOpenNI(this);
+   
+  // enable depthMap generation 
+  if(context.enableDepth() == false)
+  {
+     println("Can't open the depthMap, maybe the camera is not connected!"); 
+     exit();
+     return;
+  }
+  
+  // enable skeleton generation for all joints
+//  context.enableUser(SimpleOpenNI.SKEL_PROFILE_NONE);
+ 
+  background(200,0,0);
+
+  stroke(0,0,255);
+  strokeWeight(3);
+  smooth();
+  
+  size(context.depthWidth(), context.depthHeight()); 
   try{
     robot = new Robot();
-    monitor[0] = 1920;
-    monitor[1] = 1200;
-    context = new SimpleOpenNI(this);
-     
-    // enable depthMap generation 
-    if(context.enableDepth() == false)
-    {
-       println("Can't open the depthMap, maybe the camera is not connected!"); 
-       exit();
-       return;
-    }
-    
-    // enable skeleton generation for all joints
-  //  context.enableUser(SimpleOpenNI.SKEL_PROFILE_NONE);
-   
-    background(200,0,0);
-  
-    stroke(0,0,255);
-    strokeWeight(3);
-    smooth();
-    
-    size(context.depthWidth(), context.depthHeight()); 
-    
     centerMouse();
   }catch(Exception e){}
 }
