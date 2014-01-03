@@ -24,9 +24,9 @@ PFont fontA;
 int yCenter;
 void setup()
 {
-  monitor[0] = 1680;
-  monitor[1] = 1050;
-  yCenter = monitor[1]/2;
+  monitor[0] = 1920;
+  monitor[1] = 1200;
+  yCenter = monitor[1]/2 + 240;
   context = new SimpleOpenNI(this);
    
   // enable depthMap generation 
@@ -48,10 +48,10 @@ void setup()
   fontA = loadFont("CourierNew36.vlw");
   textAlign(CENTER);
   textFont(fontA, 62);
-  size(context.depthWidth(), context.depthHeight()+300); 
+  size(context.depthWidth(), context.depthHeight()); 
   try{
     robot = new Robot();
-    centerMouse();
+//    centerMouse();
   }catch(Exception e){}
 }
 
@@ -66,10 +66,15 @@ void centerMouse() {
 }
 
 void turn(float delta){
-//  delta = map(delta, -500, 500, -50, 50);
-  robot.mouseMove((int)(monitor[0]/2+delta),yCenter);
-//  myDelay(0.0001);
-  centerMouse();
+  if(delta < 0){
+   robot.keyPress(KeyEvent.VK_LEFT);
+   myDelay(abs(delta));
+   robot.keyRelease(KeyEvent.VK_LEFT);
+  } else {
+    robot.keyPress(KeyEvent.VK_RIGHT);
+    myDelay(abs(delta));
+    robot.keyRelease(KeyEvent.VK_RIGHT);
+  }
 }
 
 void moveLeft() throws Exception{
@@ -97,8 +102,8 @@ void moveBackward() throws Exception{
 }
 
 int buffer = 30;
-int zBuffer = 500;
-int zThresh = 1400;
+int zBuffer = 100;
+int zThresh = 1300;
 void draw()
 {
   try{
@@ -129,8 +134,8 @@ orientation.m30+ ",   \t" +  orientation.m31+ ",   \t" +  orientation.m32+ ",   
 );
         println("--------------\n");
 //        text(lShoulder.z - rShoulder.z+"", 400,200);
-        float rotation = map(orientation.m02, -1.0, 1.0, -100, 100);
-        if(abs(rotation) > 5){
+        float rotation = map(orientation.m02, -1.0, 1.0, -1.0, 1.0);
+        if(abs(rotation) > 0.2){
           turn(rotation);
         }
       }
@@ -147,9 +152,9 @@ orientation.m30+ ",   \t" +  orientation.m31+ ",   \t" +  orientation.m32+ ",   
         moveRight();
       }
       text((int)position.z+"", 100,120);
-      if( position.z > zThresh + zBuffer ){
+      if( position.z > (zThresh + zBuffer) ){
         moveBackward();
-      } else if( position.z < zThresh - zBuffer ){
+      } else if( position.z < (zThresh - zBuffer) ){
         moveForward();
       }
     }
