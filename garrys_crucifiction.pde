@@ -134,8 +134,8 @@ orientation.m30+ ",   \t" +  orientation.m31+ ",   \t" +  orientation.m32+ ",   
 );
         println("--------------\n");
 //        text(lShoulder.z - rShoulder.z+"", 400,200);
-        float rotation = map(orientation.m02, -1.0, 1.0, -1.0, 1.0);
-        if(abs(rotation) > 0.2){
+        float rotation = map(orientation.m02, -1.0, 1.0, -100.0, 100.0);
+        if(abs(rotation) > 10){
           turn(rotation);
         }
       }
