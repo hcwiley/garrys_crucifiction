@@ -21,10 +21,12 @@ int[] monitor = new int[2];
 
 PFont fontA;
 
+int yCenter;
 void setup()
 {
   monitor[0] = 1680;
   monitor[1] = 1050;
+  yCenter = monitor[1]/2;
   context = new SimpleOpenNI(this);
    
   // enable depthMap generation 
@@ -53,19 +55,20 @@ void setup()
   }catch(Exception e){}
 }
 
+void myDelay(float del){
+  float cur = millis();
+  while(millis() - del < cur){}
+  return;
+}
+
 void centerMouse() {
-  robot.mouseMove(monitor[0]/2,monitor[1]/2);
+  robot.mouseMove(monitor[0]/2,yCenter);
 }
 
-void turnLeft(){
-  robot.mouseMove(monitor[0]/4,monitor[1]/2);
-  delay(500);
-  centerMouse();
-}
-
-void turnRight(){
-  robot.mouseMove(monitor[0] - monitor[0]/4,monitor[1]/2);
-  delay(500);
+void turn(float delta){
+//  delta = map(delta, -500, 500, -50, 50);
+  robot.mouseMove((int)(monitor[0]/2+delta),yCenter);
+//  myDelay(0.0001);
   centerMouse();
 }
 
@@ -80,18 +83,22 @@ void moveRight() throws Exception{
 }
 
 void moveForward() throws Exception{
+  robot.keyPress(KeyEvent.VK_SHIFT);
   robot.keyPress(KeyEvent.VK_W);
   robot.keyRelease(KeyEvent.VK_W);
+  robot.keyRelease(KeyEvent.VK_SHIFT);
 }
 
 void moveBackward() throws Exception{
+  robot.keyPress(KeyEvent.VK_SHIFT);
   robot.keyPress(KeyEvent.VK_S);
   robot.keyRelease(KeyEvent.VK_S);
+  robot.keyRelease(KeyEvent.VK_SHIFT);
 }
 
 int buffer = 30;
-int zBuffer = 1000;
-int zThresh = 1200;
+int zBuffer = 500;
+int zThresh = 1400;
 void draw()
 {
   try{
@@ -99,7 +106,8 @@ void draw()
     context.update();
     
     // draw depthImageMap
-    image(context.depthImage(),0,0);
+    context.depthImage();
+    image(context.userImage(),0,0);
     
     // draw the skeleton if it's available
     int[] userList = context.getUsers();
@@ -107,6 +115,25 @@ void draw()
     {
       PVector position = new PVector();
       int userId = userList[i];
+      if(context.isTrackingSkeleton(userList[i])){
+        PVector lShoulder = new PVector();
+        PVector rShoulder = new PVector();
+        float confidence;
+        PMatrix3D  orientation = new PMatrix3D();
+        confidence = context.getJointOrientationSkeleton(userId,SimpleOpenNI.SKEL_TORSO,orientation);
+        println("--------------");
+        println(orientation.m00+ ",   \t" +  orientation.m01+ ",   \t" +  orientation.m02+ ",   \t" +  orientation.m03+ ",   \t" + "\n" +
+orientation.m10+ ",   \t" +  orientation.m11+ ",   \t" +  orientation.m12+ ",   \t" +  orientation.m13+ ",   \t" + "\n" +
+orientation.m20+ ",   \t" +  orientation.m21+ ",   \t" +  orientation.m22+ ",   \t" +  orientation.m23+ ",   \t" + "\n" +
+orientation.m30+ ",   \t" +  orientation.m31+ ",   \t" +  orientation.m32+ ",   \t" +  orientation.m33
+);
+        println("--------------\n");
+//        text(lShoulder.z - rShoulder.z+"", 400,200);
+        float rotation = map(orientation.m02, -1.0, 1.0, -100, 100);
+        if(abs(rotation) > 5){
+          turn(rotation);
+        }
+      }
       context.getCoM(userId, position);
       context.convertRealWorldToProjective(position, position);
       fill(255,0,0);
@@ -119,29 +146,33 @@ void draw()
       } else if( position.x < width/2 - buffer ){
         moveRight();
       }
-      if( position.z - zThresh > zBuffer ){
+      text((int)position.z+"", 100,120);
+      if( position.z > zThresh + zBuffer ){
         moveBackward();
-      } else if( position.z - zThresh < zBuffer ){
+      } else if( position.z < zThresh - zBuffer ){
         moveForward();
-      }
-      if(context.isTrackingSkeleton(userList[i])){
-        PVector lShoulder = new PVector();
-        PVector rShoulder = new PVector();
-        float confidence;
-        confidence = context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_LEFT_SHOULDER,lShoulder);
-        confidence = context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_RIGHT_SHOULDER,rShoulder);
-        println("\n--------------");
-        println(lShoulder);
-        println(rShoulder);
-        println("--------------\n");
-        text(lShoulder.z*10 - rShoulder.z*10+"", 400,200);
-        if(lShoulder.z - rShoulder.z > 0.5){
-          turnLeft();
-        }
-        else if(rShoulder.z - lShoulder.z > 0.5){
-          turnRight();
-        }
       }
     }
   } catch(Exception e){}
 }
+// -----------------------------------------------------------------
+// SimpleOpenNI events
+
+void onNewUser(SimpleOpenNI curContext, int userId)
+{
+  println("onNewUser - userId: " + userId);
+  println("\tstart tracking skeleton");
+  
+  curContext.startTrackingSkeleton(userId);
+}
+
+void onLostUser(SimpleOpenNI curContext, int userId)
+{
+  println("onLostUser - userId: " + userId);
+}
+
+void onVisibleUser(SimpleOpenNI curContext, int userId)
+{
+  //println("onVisibleUser - userId: " + userId);
+}
+
