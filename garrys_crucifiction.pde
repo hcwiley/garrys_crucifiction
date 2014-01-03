@@ -19,10 +19,12 @@ boolean       autoCalib=true;
 Robot robot;
 int[] monitor = new int[2];
 
+PFont fontA;
+
 void setup()
 {
-  monitor[0] = 1920;
-  monitor[1] = 1200;
+  monitor[0] = 1680;
+  monitor[1] = 1050;
   context = new SimpleOpenNI(this);
    
   // enable depthMap generation 
@@ -34,15 +36,17 @@ void setup()
   }
   
   // enable skeleton generation for all joints
-//  context.enableUser(SimpleOpenNI.SKEL_PROFILE_NONE);
+  context.enableUser();//SimpleOpenNI.SKEL_PROFILE_NONE);
  
   background(200,0,0);
 
   stroke(0,0,255);
   strokeWeight(3);
   smooth();
-  
-  size(context.depthWidth(), context.depthHeight()); 
+  fontA = loadFont("CourierNew36.vlw");
+  textAlign(CENTER);
+  textFont(fontA, 62);
+  size(context.depthWidth(), context.depthHeight()+300); 
   try{
     robot = new Robot();
     centerMouse();
@@ -51,6 +55,18 @@ void setup()
 
 void centerMouse() {
   robot.mouseMove(monitor[0]/2,monitor[1]/2);
+}
+
+void turnLeft(){
+  robot.mouseMove(monitor[0]/4,monitor[1]/2);
+  delay(500);
+  centerMouse();
+}
+
+void turnRight(){
+  robot.mouseMove(monitor[0] - monitor[0]/4,monitor[1]/2);
+  delay(500);
+  centerMouse();
 }
 
 void moveLeft() throws Exception{
@@ -73,6 +89,9 @@ void moveBackward() throws Exception{
   robot.keyRelease(KeyEvent.VK_S);
 }
 
+int buffer = 30;
+int zBuffer = 1000;
+int zThresh = 1200;
 void draw()
 {
   try{
@@ -89,9 +108,40 @@ void draw()
       PVector position = new PVector();
       int userId = userList[i];
       context.getCoM(userId, position);
+      context.convertRealWorldToProjective(position, position);
       fill(255,0,0);
       ellipse(position.x, position.y, 10,10);
-      println(position.x);
+//      text(position.z+"", 400,200);
+//      if(position.x > 0)
+//        println(position.x);
+      if( position.x > width/2 + buffer ){
+        moveLeft();
+      } else if( position.x < width/2 - buffer ){
+        moveRight();
+      }
+      if( position.z - zThresh > zBuffer ){
+        moveBackward();
+      } else if( position.z - zThresh < zBuffer ){
+        moveForward();
+      }
+      if(context.isTrackingSkeleton(userList[i])){
+        PVector lShoulder = new PVector();
+        PVector rShoulder = new PVector();
+        float confidence;
+        confidence = context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_LEFT_SHOULDER,lShoulder);
+        confidence = context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_RIGHT_SHOULDER,rShoulder);
+        println("\n--------------");
+        println(lShoulder);
+        println(rShoulder);
+        println("--------------\n");
+        text(lShoulder.z*10 - rShoulder.z*10+"", 400,200);
+        if(lShoulder.z - rShoulder.z > 0.5){
+          turnLeft();
+        }
+        else if(rShoulder.z - lShoulder.z > 0.5){
+          turnRight();
+        }
+      }
     }
   } catch(Exception e){}
 }
