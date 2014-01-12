@@ -78,54 +78,56 @@ void turn(float delta){
 }
 
 void moveLeft() throws Exception{
+  robot.keyPress(KeyEvent.VK_ALT);
   robot.keyPress(KeyEvent.VK_A);
   robot.keyRelease(KeyEvent.VK_A);
+  robot.keyRelease(KeyEvent.VK_ALT);
 }
 
 void moveRight() throws Exception{
+  robot.keyPress(KeyEvent.VK_ALT);
   robot.keyPress(KeyEvent.VK_D);
   robot.keyRelease(KeyEvent.VK_D);
+  robot.keyRelease(KeyEvent.VK_ALT);
 }
 
 void moveForward() throws Exception{
-  robot.keyPress(KeyEvent.VK_SHIFT);
+  robot.keyPress(KeyEvent.VK_ALT);
   robot.keyPress(KeyEvent.VK_W);
   robot.keyRelease(KeyEvent.VK_W);
-  robot.keyRelease(KeyEvent.VK_SHIFT);
+  robot.keyRelease(KeyEvent.VK_ALT);
 }
 
 void moveBackward() throws Exception{
-  robot.keyPress(KeyEvent.VK_SHIFT);
+  robot.keyPress(KeyEvent.VK_ALT);
   robot.keyPress(KeyEvent.VK_S);
   robot.keyRelease(KeyEvent.VK_S);
-  robot.keyRelease(KeyEvent.VK_SHIFT);
+  robot.keyRelease(KeyEvent.VK_ALT);
 }
 
-int buffer = 30;
-int zBuffer = 100;
-int zThresh = 1300;
-void draw()
-{
+void draw(){
+  context.update();
+  
+  // draw depthImageMap
+  context.depthImage();
+  image(context.userImage(),0,0);
   try{
-    // update the cam
-    context.update();
-    
-    // draw depthImageMap
-    context.depthImage();
-    image(context.userImage(),0,0);
-    
     // draw the skeleton if it's available
     int[] userList = context.getUsers();
     for(int i=0;i<userList.length;i++)
     {
       PVector position = new PVector();
       int userId = userList[i];
+      context.getCoM(userId, position);
+      if( position.x > 520 || position.z < 1800)
+        continue;
       if(context.isTrackingSkeleton(userList[i])){
         PVector lShoulder = new PVector();
         PVector rShoulder = new PVector();
         float confidence;
         PMatrix3D  orientation = new PMatrix3D();
         confidence = context.getJointOrientationSkeleton(userId,SimpleOpenNI.SKEL_TORSO,orientation);
+        /*
         println("--------------");
         println(orientation.m00+ ",   \t" +  orientation.m01+ ",   \t" +  orientation.m02+ ",   \t" +  orientation.m03+ ",   \t" + "\n" +
 orientation.m10+ ",   \t" +  orientation.m11+ ",   \t" +  orientation.m12+ ",   \t" +  orientation.m13+ ",   \t" + "\n" +
@@ -133,29 +135,31 @@ orientation.m20+ ",   \t" +  orientation.m21+ ",   \t" +  orientation.m22+ ",   
 orientation.m30+ ",   \t" +  orientation.m31+ ",   \t" +  orientation.m32+ ",   \t" +  orientation.m33
 );
         println("--------------\n");
+        */
 //        text(lShoulder.z - rShoulder.z+"", 400,200);
-        float rotation = map(orientation.m02, -1.0, 1.0, -100.0, 100.0);
-        if(abs(rotation) > 10){
+        float rotation = map(orientation.m02, -1.0, 1.0, -0.1, 0.1);
+        if(abs(rotation) > 0.025){
           turn(rotation);
         }
-      }
-      context.getCoM(userId, position);
-      context.convertRealWorldToProjective(position, position);
-      fill(255,0,0);
-      ellipse(position.x, position.y, 10,10);
-//      text(position.z+"", 400,200);
-//      if(position.x > 0)
-//        println(position.x);
-      if( position.x > width/2 + buffer ){
-        moveLeft();
-      } else if( position.x < width/2 - buffer ){
-        moveRight();
-      }
-      text((int)position.z+"", 100,120);
-      if( position.z > (zThresh + zBuffer) ){
-        moveBackward();
-      } else if( position.z < (zThresh - zBuffer) ){
-        moveForward();
+        context.getCoM(userId, position);
+        context.convertRealWorldToProjective(position, position);
+        fill(255,0,0);
+        ellipse(position.x, position.y, 10,10);
+  //      text(position.z+"", 400,200);
+  //      if(position.x > 0)
+  //        println(position.x);
+        if( position.x > 415 ){
+          moveLeft();
+        } else if( position.x < 260 ){
+          moveRight();
+        }
+        text((int)position.x+"", 100,120);
+        text((int)position.z+"", 100,420);
+        if( position.z < 2300 ){
+          moveForward();
+        } else if( position.z > 3000 ){
+          moveBackward();
+        }
       }
     }
   } catch(Exception e){}
